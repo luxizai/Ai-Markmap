@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8"/>
-    <title>AI思维导图生成器 - Markmap</title>
+    <title>AI思维导图生成 - AiMarkmap</title>
     <link rel="icon"
           href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23667eea'/%3E%3Cg stroke='white' stroke-width='6' stroke-linecap='round'%3E%3Cline x1='50' y1='50' x2='80' y2='25'/%3E%3Cline x1='50' y1='50' x2='25' y2='40'/%3E%3Cline x1='50' y1='50' x2='60' y2='80'/%3E%3C/g%3E%3Ccircle cx='50' cy='50' r='12' fill='white'/%3E%3Ccircle cx='80' cy='25' r='8' fill='white'/%3E%3Ccircle cx='25' cy='40' r='8' fill='white'/%3E%3Ccircle cx='60' cy='80' r='8' fill='white'/%3E%3Cpath d='M50 44L52 48 L56 50 L52 52 L50 56 L48 52 L44 50 L48 48 Z' fill='%23764ba2'/%3E%3C/svg%3E">
     <script src="https://unpkg.com/d3@7.8.5/dist/d3.min.js"></script>
@@ -196,13 +196,21 @@
 
         .model-container {
             display: flex;
-            gap: 0.3rem;
             align-items: center;
+            justify-content: space-between;
+            gap: 0.3rem;
             width: 100%;
+            overflow: hidden;
         }
 
         .model-select {
-            flex: 1;
+            flex: 1 1 auto;
+            width: 240px;
+            max-width: 100%;
+            min-width: 0;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
             padding: 0.4rem 0.6rem;
             border: 1px solid #ddd;
             border-radius: 4px;
@@ -213,6 +221,14 @@
         }
 
         .query-models-btn {
+            flex-shrink: 0;
+            flex-grow: 0;
+            flex-basis: 60px;
+            max-width: 80px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 60px;
             padding: 0.3rem 0.6rem;
             border: 1px solid #667eea;
             border-radius: 4px;
@@ -221,12 +237,10 @@
             cursor: pointer;
             font-size: 0.75rem;
             transition: all 0.2s;
-            white-space: nowrap;
             height: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
-            min-width: 60px;
         }
 
         .query-models-btn:hover {
@@ -712,6 +726,95 @@
             color: white;
         }
 
+        #edit-node-input {
+            height: 120px;
+            margin-bottom: 1rem;
+        }
+
+        .context-menu {
+            position: absolute;
+            z-index: 3000;
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 6px 0;
+            min-width: 150px;
+            font-size: 0.9rem;
+            list-style: none;
+            user-select: none;
+        }
+
+        .context-menu-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .context-menu-item:hover {
+            background-color: #f5f5f5;
+        }
+
+        .info-modal-content {
+            line-height: 1.6;
+            color: #333;
+            padding: 1rem 1.5rem;
+        }
+
+        .info-modal-content h2 {
+            font-size: 1.5rem;
+            color: #4c63d2;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #eee;
+        }
+
+        .info-modal-content h2:first-of-type {
+            margin-top: 0;
+        }
+
+        .info-modal-content h3 {
+            font-size: 1.2rem;
+            color: #667eea;
+            margin-top: 1.2rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .info-modal-content p, .info-modal-content ul {
+            margin-bottom: 1rem;
+        }
+
+        .info-modal-content ul {
+            list-style-position: outside;
+            padding-left: 1.5rem;
+        }
+
+        .info-modal-content li {
+            margin-bottom: 0.5rem;
+        }
+
+        .info-modal-content li > ul {
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-modal-content strong {
+            color: #5a67d8;
+        }
+
+        .info-modal-content code {
+            background-color: rgba(102, 126, 234, 0.1);
+            padding: 0.2em 0.4em;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #4c63d2;
+            font-weight: 600;
+        }
+
         /* 隐藏API设置相关元素 */
         #settings-btn,
         #settings-modal,
@@ -725,6 +828,12 @@
 <div class="header">
     <h1>AiMarkmap <span class="ai-badge">AI Powered</span></h1>
     <div class="header-right">
+        <button id="info-btn" class="github-link" style="background:none; border:none; cursor:pointer; padding:0; color:white;" data-t-title="helpBtnTitle">
+            <svg class="github-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="28" height="28">
+                <path d="M0 0h24v24H0z" fill="none"></path>
+                <path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"></path>
+            </svg>
+        </button>
         <a href="https://github.com/kongkongyo/Ai-Markmap" title="View on GitHub" target="_blank"
            rel="noopener noreferrer" class="github-link">
             <svg class="github-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
@@ -861,6 +970,32 @@
     </div>
 </div>
 
+<div id="edit-node-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <button class="modal-close-btn" onclick="closeEditModal()">&times;</button>
+        <div class="panel-header">
+            <div class="panel-title" data-t="editNodeTitle"></div>
+        </div>
+        <div class="ai-config">
+            <textarea id="edit-node-input" class="text-input" data-t-placeholder="editNodePlaceholder"></textarea>
+            <div class="button-row">
+                <button class="control-btn ai-btn" onclick="saveNodeEdit()" data-t="saveAndCloseBtn"></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="info-modal" class="modal-overlay hidden">
+    <div class="modal-content" style="width: 800px; max-height: 80vh; display: flex; flex-direction: column;">
+        <button class="modal-close-btn" onclick="closeInfoModal()">&times;</button>
+        <div class="panel-header">
+            <div class="panel-title" data-t="infoModalTitle"></div>
+        </div>
+        <div class="info-modal-content" style="overflow-y: auto; flex-grow: 1;">
+        </div>
+    </div>
+</div>
+
 <script>
     // 固定配置 - 请修改为您的实际配置
     const FIXED_CONFIG = {
@@ -878,6 +1013,7 @@
     let startTime = 0;
     let currentViewMode = 'input';
     let AI_PROMPT_TEMPLATE = '';
+    let editingNodeContext = null;
 
     let currentLanguage = 'zh';
 
@@ -904,14 +1040,68 @@
             'saveAndCloseBtn': '💾 保存并关闭',
             'promptSettingsTitle': '📝 Prompt 设置',
             'promptTip': '请确保在Prompt模板中包含 <code>{{CONTENT}}</code>，它将被替换为左侧的输入内容。',
+            'editNodeTitle': '✏️ 编辑节点',
+            'deleteNodeBtn': '🗑️ 删除节点',
+            'helpBtnTitle': '帮助与信息',
+            'infoModalTitle': '使用说明、服务条款和隐私政策',
+            'infoModalContentHtml': `
+            <h2>使用说明</h2>
+            <ul>
+                <li><strong>API 设置:</strong> 首次使用，请点击右上角的 <code>⚙️ API设置</code> 按钮，填入您的 AI 服务商提供的 API 地址 (URL) 和密钥 (Key)。配置将自动保存在您的浏览器本地。</li>
+                <li><strong>模型选择:</strong> 在左侧面板选择或输入您想使用的 AI 模型。点击 <code>🔍 查询</code> 可自动获取该 API 地址下支持的模型列表。</li>
+                <li><strong>内容输入:</strong> 在左侧最大的输入框中，您可以输入一段描述性文本，或者直接粘贴已经格式化好的 Markdown 内容。</li>
+                <li><strong>AI 生成:</strong> 输入描述性文本后，通过滑块选择希望 AI 生成的不同版本数量（1-5个），然后点击 <code>🚀 AI生成</code>。</li>
+                <li><strong>版本切换:</strong> 生成成功后，思维导图预览区上方会出现版本选项卡 (如"版本1", "版本2")，点击即可切换查看不同版本。</li>
+                <li><strong>编辑与查看:</strong>
+                    <ul style="margin-top: 0.5rem;">
+                        <li>在思维导图上对任意节点<strong>单击右键</strong>，可选择<strong>"编辑节点"</strong>或<strong>"删除节点"</strong>。</li>
+                        <li>左侧的 <code>📝 显示Markdown</code> 按钮可以让你查看和编辑 AI 生成的 Markdown 源码。</li>
+                    </ul>
+                </li>
+                <li><strong>导出与全屏:</strong> 使用预览区右上角的按钮可将当前思维导图导出为 <code>SVG</code> 或 <code>PNG</code> 图片，或进入全屏模式。</li>
+            </ul>
+
+            <h2>服务条款</h2>
+            <p>当您使用 AiMarkmap 时，即表示您同意以下条款：</p>
+            <ul>
+                <li>您对自己输入到本产品中的所有内容（包括文本、API密钥等）负全部责任。您必须保证输入的内容不侵犯任何第三方权利，且不违反任何适用法律法规。</li>
+                <li>禁止利用本产品进行任何形式的恶意行为，包括但不限于大量的、不合理的 API 请求、传播非法信息、或攻击第三方服务。</li>
+            </ul>
+
+            <h2>隐私政策</h2>
+            <p>我们高度重视您的隐私。请仔细阅读以下关于我们如何处理您的数据的信息：</p>
+            <h3>数据收集</h3>
+            <p>本产品主要处理两类数据：</p>
+            <ul>
+                <li><strong>配置信息:</strong> 您输入的 API 地址、API 密钥、所选模型等配置。这些信息仅使用浏览器的 <code>localStorage</code> 技术存储在<strong>您自己的电脑上</strong>，用于简化您的后续使用，不会上传到 AiMarkmap 的服务器。</li>
+                <li><strong>输入内容:</strong> 您为生成思维导图而输入的文本内容。</li>
+            </ul>
+            <p>本产品<strong>不使用</strong>任何第三方分析工具（如 Google Analytics）来追踪您的个人行为。</p>
+
+            <h3>数据使用</h3>
+            <p>您的所有数据处理均在<strong>浏览器端（客户端）</strong>完成。具体流程如下：</p>
+            <ul>
+                <li>您的 API 密钥和输入内容仅在您点击"AI生成"按钮时，由您的浏览器直接组合成一个请求，发送给您在设置中指定的第三方 AI 服务（如 OpenAI、Google AI 等）。</li>
+                <li><strong>AiMarkmap 的服务器不存储、不中转、也无法看到</strong>您的 API 密钥和输入内容。数据传输路径为：您的浏览器 -> 您指定的 AI 服务提供商。</li>
+            </ul>
+
+            <h3>第三方服务</h3>
+            <p>本产品作为一个客户端工具，会根据您的配置调用第三方 AI 服务。您发送的数据将受您所使用的 AI 服务提供商的隐私政策和数据使用条款约束。我们强烈建议您在使用前查阅相应服务商的官方隐私政策。</p>
+
+            <h2>免责声明</h2>
+            <ul>
+                <li><strong>AI 生成内容的准确性：</strong>由 AI 模型生成的所有内容仅供参考。我们不保证其准确性、完整性或适用性。您需要自行判断并对使用这些结果所造成的一切后果负责。</li>
+                <li><strong>服务可用性：</strong>由于本产品依赖于网络连接和第三方 API 服务的稳定性，我们不承诺服务 100% 不间断或无错误。因网络问题、API 服务商故障或您自身配置错误导致的服务不可用，我们不承担任何责任。</li>
+            </ul>`,
 
             'customModelInputPlaceholder': '输入自定义模型名称',
-            'topicInputPlaceholder': '可直接输入或粘贴Markdown，或输入普通文本后点击“AI生成”...',
+            'topicInputPlaceholder': '可直接输入或粘贴Markdown，或输入普通文本后点击"AI生成"...',
             'contentDisplayPlaceholder': '编辑内容...',
             'apiUrlPlaceholder': 'AI API地址',
             'apiKeyPlaceholder': 'API密钥',
             'toggleVisibilityTitle': '显示/隐藏密钥',
             'promptInputPlaceholder': '在此编辑AI Prompt模板...',
+            'editNodePlaceholder': '输入节点的新内容...',
 
             'js_generating': '生成中...',
             'js_exporting': '导出中...',
@@ -923,7 +1113,7 @@
             'js_status_done': (n) => `生成完成！共 ${n} 个有效版本。`,
             'js_tab_version': (i) => `版本 ${i + 1}`,
             'js_alert_no_content': '请先输入内容！',
-            'js_alert_no_api_config': '请先点击右上角“API设置”配置API地址和密钥！',
+            'js_alert_no_api_config': '请先点击右上角"API设置"配置API地址和密钥！',
             'js_alert_no_custom_model': '请在自定义输入框中填写模型名称！',
             'js_alert_all_failed': '所有AI生成请求均失败或返回空内容。请检查API设置和网络。',
             'js_alert_gen_failed': (msg) => `AI生成失败: ${msg}`,
@@ -936,7 +1126,7 @@
             'js_alert_no_mindmap': '找不到思维导图，无法导出。',
             'js_alert_export_error': (type) => `导出${type}图片时发生错误，请稍后重试。`,
 
-            'defaultMarkdown': `# 🤖 AI思维导图生成器
+            'defaultMarkdown': `# 🤖 AI思维导图生成 - AiMarkmap
 
 ## ✨ 新功能特性
 ### 🎯 智能生成
@@ -984,7 +1174,7 @@
    - 语言保持: 保持原文语言与用词
    - Emoji增强: 合理使用Emoji增强视觉导向与可读性
 
-## Rules
+3. Rules
 
 1. 基本原则：
    - 原文尊重：所有内容必须保留原文句子，杜绝改写或删减关键内容
@@ -1040,6 +1230,59 @@
             'saveAndCloseBtn': '💾 Save & Close',
             'promptSettingsTitle': '📝 Prompt Settings',
             'promptTip': 'Please make sure to include <code>{{CONTENT}}</code> in the prompt template, which will be replaced with the input content from the left.',
+            'editNodeTitle': '✏️ Edit Node',
+            'deleteNodeBtn': '🗑️ Delete Node',
+            'helpBtnTitle': 'Help & Information',
+            'infoModalTitle': 'Instructions, Terms & Privacy Policy',
+            'infoModalContentHtml': `
+            <h2>Instructions</h2>
+            <ul>
+                <li><strong>API Settings:</strong> On first use, click the <code>⚙️ API Settings</code> button in the top right to enter the API URL and Key provided by your AI service provider. The configuration will be saved locally in your browser.</li>
+                <li><strong>Model Selection:</strong> In the left panel, select or enter the AI model you want to use. Click <code>🔍 Query</code> to automatically fetch a list of supported models from the API URL.</li>
+                <li><strong>Content Input:</strong> In the largest input box on the left, you can enter descriptive text or paste pre-formatted Markdown content.</li>
+                <li><strong>AI Generation:</strong> After entering descriptive text, use the slider to select the number of different versions you want the AI to generate (1-5), then click <code>🚀 AI Generate</code>.</li>
+                <li><strong>Switching Versions:</strong> After successful generation, version tabs (e.g., "Version 1", "Version 2") will appear above the mind map preview area. Click to view different versions.</li>
+                <li><strong>Editing and Viewing:</strong>
+                    <ul style="margin-top: 0.5rem;">
+                        <li>On the mind map, <strong>right-click</strong> any node to select <strong>"Edit Node"</strong> or <strong>"Delete Node"</strong>.</li>
+                        <li>The <code>📝 Show Markdown</code> button on the left allows you to view and edit the AI-generated Markdown source.</li>
+                    </ul>
+                </li>
+                <li><strong>Export & Fullscreen:</strong> Use the buttons in the top right of the preview area to export the current mind map as an <code>SVG</code> or <code>PNG</code> image, or enter fullscreen mode.</li>
+            </ul>
+
+            <h2>Terms of Service</h2>
+            <p>By using AiMarkmap, you agree to the following terms:</p>
+            <ul>
+                <li>You are solely responsible for all content (including text, API keys, etc.) you input into this product. You must ensure that the input content does not infringe on any third-party rights and does not violate any applicable laws and regulations.</li>
+                <li>You are prohibited from using this product for any form of malicious activity, including but not limited to, making a large number of unreasonable API requests, disseminating illegal information, or attacking third-party services.</li>
+            </ul>
+
+            <h2>Privacy Policy</h2>
+            <p>We take your privacy very seriously. Please read the following information carefully about how we handle your data:</p>
+            <h3>Data Collection</h3>
+            <p>This product primarily handles two types of data:</p>
+            <ul>
+                <li><strong>Configuration Information:</strong> The API URL, API Key, selected model, and other settings you enter. This information is stored <strong>only on your own computer</strong> using the browser's <code>localStorage</code> technology to simplify your subsequent use and is not uploaded to AiMarkmap's servers.</li>
+                <li><strong>Input Content:</strong> The text content you provide to generate mind maps.</li>
+            </ul>
+            <p>This product <strong>does not use</strong> any third-party analytics tools (like Google Analytics) to track your personal behavior.</p>
+
+            <h3>Data Usage</h3>
+            <p>All of your data processing is done on the <strong>client-side (in your browser)</strong>. The process is as follows:</p>
+            <ul>
+                <li>Your API key and input content are combined into a request by your browser and sent directly to the third-party AI service you specify in the settings (such as OpenAI, Google AI, etc.) only when you click the "AI Generate" button.</li>
+                <li><strong>AiMarkmap's servers do not store, proxy, or have any visibility into</strong> your API key and input content. The data transmission path is: Your Browser -> Your Specified AI Service Provider.</li>
+            </ul>
+
+            <h3>Third-Party Services</h3>
+            <p>As a client-side tool, this product calls third-party AI services based on your configuration. The data you send is subject to the privacy policy and data usage terms of the AI service provider you use. We strongly recommend that you review the official privacy policies of the respective service providers before use.</p>
+
+            <h2>Disclaimer</h2>
+            <ul>
+                <li><strong>Accuracy of AI-Generated Content:</strong> All content generated by AI models is for reference only. We do not guarantee its accuracy, completeness, or suitability. You need to judge for yourself and are responsible for all consequences arising from the use of these results.</li>
+                <li><strong>Service Availability:</strong> As this product relies on network connectivity and the stability of third-party API services, we do not promise that the service will be 100% uninterrupted or error-free. We do not assume any responsibility for service unavailability caused by network issues, API provider failures, or your own configuration errors.</li>
+            </ul>`,
 
             'customModelInputPlaceholder': 'Enter custom model name',
             'topicInputPlaceholder': 'Enter or paste Markdown directly, or input text and click "AI Generate"...',
@@ -1048,6 +1291,7 @@
             'apiKeyPlaceholder': 'API Key',
             'toggleVisibilityTitle': 'Show/Hide Key',
             'promptInputPlaceholder': 'Edit AI Prompt template here...',
+            'editNodePlaceholder': 'Enter the new content for the node...',
 
             'js_generating': 'Generating...',
             'js_exporting': 'Exporting...',
@@ -1072,7 +1316,7 @@
             'js_alert_no_mindmap': 'Could not find the mind map to export.',
             'js_alert_export_error': (type) => `An error occurred while exporting the ${type} image. Please try again later.`,
 
-            'defaultMarkdown': `# 🤖 AI Mind Map Generator
+            'defaultMarkdown': `# 🤖 AI Mind Map Generation - AiMarkmap
 
 ## ✨ Features
 ### 🎯 Smart Generation
@@ -1162,11 +1406,16 @@ Please adhere to the following requirements:
             if (t[key]) el.title = t[key];
         });
 
+        const infoModalContent = document.querySelector('#info-modal .info-modal-content');
+        if (infoModalContent && t['infoModalContentHtml']) {
+            infoModalContent.innerHTML = t['infoModalContentHtml'];
+        }
+
         document.querySelectorAll('#lang-switcher .lang-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.lang === lang);
         });
 
-        document.title = (lang === 'zh') ? 'AI思维导图生成器 - Markmap' : 'AI Mind Map Generator - Markmap';
+        document.title = (lang === 'zh') ? 'AI思维导图生成 - AiMarkmap' : 'AI Mind Map Generation - AiMarkmap';
 
         if (isShowingDefaultMarkdown) {
             currentMarkdown = T('defaultMarkdown');
@@ -1198,6 +1447,8 @@ Please adhere to the following requirements:
     const showOriginalBtn = document.getElementById('show-original-btn');
     const showMarkdownBtn = document.getElementById('show-markdown-btn');
     const settingsModal = document.getElementById('settings-modal');
+    const infoModal = document.getElementById('info-modal');
+    const editNodeModal = document.getElementById('edit-node-modal');
     const versionSlider = document.getElementById('version-slider');
     const versionCountDisplay = document.getElementById('version-count-display');
     const generateBtn = document.getElementById('generate-btn');
@@ -1239,6 +1490,14 @@ Please adhere to the following requirements:
         if (apiUrl && apiKey) {
             queryAvailableModels(true);
         }
+    }
+
+    function openInfoModal() {
+        infoModal.classList.remove('hidden');
+    }
+
+    function closeInfoModal() {
+        infoModal.classList.add('hidden');
     }
 
     function openPromptModal() {
@@ -1305,6 +1564,8 @@ Please adhere to the following requirements:
                 color: getNodeColor,
             });
 
+            setupNodeInteraction();
+
             document.getElementById('lang-switcher').addEventListener('click', (e) => {
                 if (e.target.matches('.lang-btn')) {
                     const lang = e.target.dataset.lang;
@@ -1336,11 +1597,25 @@ Please adhere to the following requirements:
                 }
             });
 
+            document.getElementById('info-btn').addEventListener('click', openInfoModal);
+            document.querySelector('#info-modal .modal-close-btn').addEventListener('click', closeInfoModal);
+            infoModal.addEventListener('click', (e) => {
+                if (e.target === infoModal) {
+                    closeInfoModal();
+                }
+            });
+
             document.getElementById('prompt-settings-btn').addEventListener('click', openPromptModal);
             document.querySelector('#prompt-modal .modal-close-btn').addEventListener('click', closePromptModal);
             promptModal.addEventListener('click', (e) => {
                 if (e.target === promptModal) {
                     closePromptModal();
+                }
+            });
+
+            editNodeModal.addEventListener('click', (e) => {
+                if (e.target === editNodeModal) {
+                    closeEditModal();
                 }
             });
 
@@ -1494,18 +1769,38 @@ Please adhere to the following requirements:
         }
 
         try {
-            let modelsApiUrl = apiUrl.replace(/\/chat\/completions$/, '/models');
-            if (!modelsApiUrl.endsWith('/models')) {
-                const baseUrlMatch = apiUrl.match(/^(https?:\/\/.+?\/v\d+)/);
-                if (baseUrlMatch) {
-                    modelsApiUrl = `${baseUrlMatch[1]}/models`;
-                } else {
-                    throw new Error("无法从API地址推断出/models路径，请检查API地址格式。");
+            let modelsApiUrl;
+
+            // 更健壮的URL构建逻辑，支持跨域API
+            try {
+                const url = new URL(apiUrl);
+                // 移除路径中的 /chat/completions
+                let pathname = url.pathname.replace(/\/chat\/completions\/?$/, '');
+                // 确保路径以 /models 结尾
+                if (!pathname.endsWith('/models')) {
+                    pathname = pathname.replace(/\/$/, '') + '/models';
+                }
+                modelsApiUrl = url.origin + pathname;
+            } catch (urlError) {
+                // 如果URL解析失败，回退到字符串替换
+                modelsApiUrl = apiUrl.replace(/\/chat\/completions$/, '/models');
+                if (!modelsApiUrl.endsWith('/models')) {
+                    const baseUrlMatch = apiUrl.match(/^(https?:\/\/[^\/]+(?:\/[^\/]+)*?\/v\d+)/);
+                    if (baseUrlMatch) {
+                        modelsApiUrl = `${baseUrlMatch[1]}/models`;
+                    } else {
+                        throw new Error("无法从API地址推断出/models路径，请检查API地址格式。");
+                    }
                 }
             }
 
             const response = await fetch(modelsApiUrl, {
-                method: 'GET', headers: {'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json'}
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                mode: 'cors'  // 明确指定CORS模式
             });
 
             if (!response.ok) {
@@ -1841,64 +2136,59 @@ Please adhere to the following requirements:
         }
     }
 
-    function getAllCssRules() {
+    function getMindmapCssRules() {
         let cssText = '';
+        const relevantSelectors = ['.markmap', 'text', 'path', 'line', 'circle', 'foreignObject'];
         for (const styleSheet of document.styleSheets) {
             try {
                 if (styleSheet.cssRules) {
                     for (const rule of styleSheet.cssRules) {
-                        cssText += rule.cssText;
+                        if (relevantSelectors.some(selector => rule.selectorText?.includes(selector))) {
+                            cssText += rule.cssText;
+                        }
                     }
                 }
             } catch (e) {
-                console.warn("Could not read CSS rules from stylesheet:", styleSheet.href, e);
+                console.warn("无法读取样式表中的CSS规则:", styleSheet.href, e);
             }
         }
         return cssText;
     }
 
-    function getSvgContentWithStyles(svgElement) {
+    function createExportableSvg(svgElement) {
         const mainGroup = svgElement.querySelector('g');
-        if (!mainGroup) {
-            return {svgString: '', width: 0, height: 0};
-        }
+        if (!mainGroup) return null;
 
         const bbox = mainGroup.getBBox();
+        if (bbox.width === 0 || bbox.height === 0) return null;
 
-        const newSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        const svgClone = svgElement.cloneNode(true);
 
-        const finalWidth = bbox.width;
-        const finalHeight = bbox.height;
-        newSvg.setAttribute('width', finalWidth);
-        newSvg.setAttribute('height', finalHeight);
+        svgClone.removeAttribute('style');
 
-        newSvg.setAttribute('viewBox', `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
+        svgClone.setAttribute('width', bbox.width);
+        svgClone.setAttribute('height', bbox.height);
+        svgClone.setAttribute('viewBox', `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
 
-        newSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-        newSvg.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+        const groupInClone = svgClone.querySelector('g');
+        if (groupInClone) {
+            groupInClone.removeAttribute('transform');
+        }
 
         const style = document.createElement('style');
-        style.textContent = getAllCssRules();
-        newSvg.appendChild(style);
-
-        const groupClone = mainGroup.cloneNode(true);
-
-        groupClone.removeAttribute('transform');
-        newSvg.appendChild(groupClone);
+        style.textContent = getMindmapCssRules();
+        svgClone.insertBefore(style, svgClone.firstChild);
 
         const serializer = new XMLSerializer();
-        let svgString = serializer.serializeToString(newSvg);
+        let svgString = serializer.serializeToString(svgClone);
 
-        svgString = svgString.replace(/(\w+)?:?xlink=/g, 'xmlns:xlink=');
-        svgString = svgString.replace(/NS\d+:href/g, 'xlink:href');
+        svgString = svgString.replace(/(\w+)?:?xlink=/g, 'xmlns:xlink=').replace(/NS\d+:href/g, 'xlink:href');
 
-        return {svgString, width: finalWidth, height: finalHeight};
+        return {svgString, width: bbox.width, height: bbox.height};
     }
 
-    function downloadFile(content, fileName, mimeType) {
-        const blob = new Blob([content], {type: mimeType});
+    function downloadBlob(blob, fileName) {
         const url = URL.createObjectURL(blob);
-
         const link = document.createElement('a');
         link.href = url;
         link.download = fileName;
@@ -1910,109 +2200,335 @@ Please adhere to the following requirements:
         URL.revokeObjectURL(url);
     }
 
+    function generateExportFileName(extension) {
+        // 获取中心主题（第一个 # 标题）
+        let topic = 'aimarkmap';
+        const lines = currentMarkdown.split('\n');
+        for (const line of lines) {
+            const match = line.match(/^#\s+(.+)/);
+            if (match) {
+                // 移除 emoji 和特殊字符，保留中英文和数字
+                topic = match[1].replace(/[^\w\u4e00-\u9fa5]/g, '').trim() || 'aimarkmap';
+                break;
+            }
+        }
+
+        // 格式化日期为 YYYYMMDDHHMMSS
+        const now = new Date();
+        const dateStr = now.getFullYear().toString() +
+            String(now.getMonth() + 1).padStart(2, '0') +
+            String(now.getDate()).padStart(2, '0') +
+            String(now.getHours()).padStart(2, '0') +
+            String(now.getMinutes()).padStart(2, '0') +
+            String(now.getSeconds()).padStart(2, '0');
+
+        return `${topic}_${dateStr}.${extension}`;
+    }
+
     async function exportSVG() {
-        const exportSvgBtn = document.getElementById('export-svg-btn');
-        if (exportSvgBtn.disabled) return;
+        const exportBtn = document.getElementById('export-svg-btn');
+        if (exportBtn.disabled) return;
 
         const mindmapSVG = document.querySelector('#mindmap');
-        if (!mindmapSVG || mindmapSVG.children.length === 0) {
+        if (!mindmapSVG) {
             alert(T('js_alert_no_mindmap'));
             return;
         }
 
-        const originalText = exportSvgBtn.textContent;
-        exportSvgBtn.disabled = true;
-        exportSvgBtn.textContent = T('js_exporting');
+        const originalText = exportBtn.textContent;
+        exportBtn.disabled = true;
+        exportBtn.textContent = T('js_exporting');
 
         try {
             await mm.fit();
-            const {svgString} = getSvgContentWithStyles(mindmapSVG);
-            downloadFile(svgString, `aimarkmap-${Date.now()}.svg`, 'image/svg+xml');
+            const svgData = createExportableSvg(mindmapSVG);
+
+            if (!svgData) {
+                throw new Error(T('js_alert_no_mindmap'));
+            }
+
+            const svgBlob = new Blob([svgData.svgString], {type: 'image/svg+xml;charset=utf-8'});
+            downloadBlob(svgBlob, generateExportFileName('svg'));
+
         } catch (error) {
             console.error('导出SVG失败:', error);
             alert(T('js_alert_export_error', 'SVG'));
         } finally {
-            exportSvgBtn.disabled = false;
-            exportSvgBtn.textContent = originalText;
+            exportBtn.disabled = false;
+            exportBtn.textContent = originalText;
         }
     }
 
     async function exportPNG() {
-        const exportPngBtn = document.getElementById('export-png-btn');
-        if (exportPngBtn.disabled) return;
+        const exportBtn = document.getElementById('export-png-btn');
+        if (exportBtn.disabled) return;
 
         const mindmapSVG = document.querySelector('#mindmap');
-        if (!mindmapSVG || mindmapSVG.children.length === 0) {
+        if (!mindmapSVG) {
             alert(T('js_alert_no_mindmap'));
             return;
         }
 
-        const originalText = exportPngBtn.textContent;
-        exportPngBtn.disabled = true;
-        exportPngBtn.textContent = T('js_exporting');
+        const originalText = exportBtn.textContent;
+        exportBtn.disabled = true;
+        exportBtn.textContent = T('js_exporting');
 
         try {
             await mm.fit();
+            const svgData = createExportableSvg(mindmapSVG);
 
-            const margin = 20;
-            const {svgString, width, height} = getSvgContentWithStyles(mindmapSVG);
-
-            if (!svgString) {
-                alert(T('js_alert_no_mindmap'));
-                exportPngBtn.disabled = false;
-                exportPngBtn.textContent = originalText;
-                return;
+            if (!svgData) {
+                throw new Error(T('js_alert_no_mindmap'));
             }
 
+            const margin = 20;
+            const scale = 3;
             const canvas = document.createElement('canvas');
-            const scale = 2;
-            canvas.width = (Number(width) + margin * 2) * scale;
-            canvas.height = (Number(height) + margin * 2) * scale;
+            canvas.width = (svgData.width + margin * 2) * scale;
+            canvas.height = (svgData.height + margin * 2) * scale;
 
             const ctx = canvas.getContext('2d');
-            ctx.scale(scale, scale);
+            if (!ctx) throw new Error('无法获取Canvas上下文');
+
+            ctx.imageSmoothingEnabled = false;
 
             ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            const img = new Image();
+            const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData.svgString)));
 
-            const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+            const img = await new Promise((resolve, reject) => {
+                const image = new Image();
+                image.onload = () => resolve(image);
+                image.onerror = (err) => reject(new Error('Failed to load SVG as image. ' + err));
+                image.src = dataUrl;
+            });
 
-            img.onload = function () {
-                ctx.drawImage(img, margin, margin);
+            if (img.decode) await img.decode();
 
-                const pngUrl = canvas.toDataURL('image/png');
-                const link = document.createElement('a');
-                link.download = `aimarkmap-${Date.now()}.png`;
-                link.href = pngUrl;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+            ctx.drawImage(img, margin * scale, margin * scale, svgData.width * scale, svgData.height * scale);
 
-                exportPngBtn.disabled = false;
-                exportPngBtn.textContent = originalText;
-            };
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
 
-            img.onerror = function (err) {
-                console.error("加载SVG Data URL到Image对象失败:", err);
-                alert(T('js_alert_export_error', 'PNG'));
-                exportPngBtn.disabled = false;
-                exportPngBtn.textContent = originalText;
-            };
-
-            img.src = dataUrl;
+            if (blob) {
+                downloadBlob(blob, generateExportFileName('png'));
+            } else {
+                throw new Error("Canvas toBlob failed.");
+            }
 
         } catch (error) {
             console.error('导出PNG时发生意外错误:', error);
             alert(T('js_alert_export_error', 'PNG'));
-            exportPngBtn.disabled = false;
-            exportPngBtn.textContent = originalText;
+        } finally {
+            exportBtn.disabled = false;
+            exportBtn.textContent = originalText;
         }
+    }
+
+    function openEditModal(originalText, lineIndex, prefix) {
+        editingNodeContext = {lineIndex, prefix};
+        const editInput = document.getElementById('edit-node-input');
+        editInput.value = originalText;
+        editNodeModal.classList.remove('hidden');
+        editInput.focus();
+        editInput.select();
+    }
+
+    function closeEditModal() {
+        editingNodeContext = null;
+        editNodeModal.classList.add('hidden');
+    }
+
+    function saveNodeEdit() {
+        if (!editingNodeContext) return;
+
+        const newText = document.getElementById('edit-node-input').value;
+        const {lineIndex, prefix} = editingNodeContext;
+        const newLine = prefix + newText;
+
+        const lines = currentMarkdown.split('\n');
+        if (lines[lineIndex] !== undefined) {
+            lines[lineIndex] = newLine;
+            currentMarkdown = lines.join('\n');
+        }
+
+        if (activeResultIndex > -1 && aiResults[activeResultIndex]) {
+            aiResults[activeResultIndex].markdown = currentMarkdown;
+            try {
+                const {root} = transformer.transform(currentMarkdown);
+                aiResults[activeResultIndex].root = root;
+            } catch (error) {
+                console.error('Error parsing edited markdown after node edit:', error);
+            }
+        }
+
+        if (currentViewMode === 'markdown') {
+            contentDisplay.value = currentMarkdown;
+        }
+
+        updateMarkmap(currentMarkdown);
+        closeEditModal();
+    }
+
+    function collectNodeLines(node, linesSet) {
+        const markmapNode = node.data;
+        if (markmapNode?.payload?.lines) {
+            const [start, end] = markmapNode.payload.lines;
+            for (let i = start; i < end; i++) {
+                linesSet.add(i);
+            }
+        }
+        if (node.children) {
+            for (const child of node.children) {
+                collectNodeLines(child, linesSet);
+            }
+        }
+    }
+
+    function deleteNode(nodeToDelete) {
+        if (!nodeToDelete) return;
+
+        const linesToDelete = new Set();
+        collectNodeLines(nodeToDelete, linesToDelete);
+
+        if (linesToDelete.size === 0) {
+            console.warn("Could not find line numbers for node deletion.", nodeToDelete);
+            return;
+        }
+
+        const lines = currentMarkdown.split('\n');
+        const newLines = lines.filter((_, i) => !linesToDelete.has(i));
+        currentMarkdown = newLines.join('\n');
+
+        if (activeResultIndex > -1 && aiResults[activeResultIndex]) {
+            aiResults[activeResultIndex].markdown = currentMarkdown;
+            try {
+                const {root} = transformer.transform(currentMarkdown);
+                aiResults[activeResultIndex].root = root;
+            } catch (error) {
+                console.error('Error parsing markdown after node deletion:', error);
+            }
+        }
+
+        if (currentViewMode === 'markdown') {
+            contentDisplay.value = currentMarkdown;
+        }
+
+        updateMarkmap(currentMarkdown);
+    }
+
+    function removeContextMenu() {
+        const existingMenu = document.getElementById('node-context-menu');
+        if (existingMenu) {
+            existingMenu.remove();
+        }
+    }
+
+    function createContextMenu(event, nodeData) {
+        const {pageX, pageY} = event;
+
+        const lines = currentMarkdown.split('\n');
+        const lineIndex = nodeData.data?.payload?.lines?.[0];
+        if (lineIndex === undefined || lines[lineIndex] === undefined) {
+            console.error("Invalid node data for context menu:", nodeData);
+            return;
+        }
+        const fullLine = lines[lineIndex];
+
+        const menu = document.createElement('div');
+        menu.id = 'node-context-menu';
+        menu.className = 'context-menu';
+        menu.addEventListener('contextmenu', e => e.preventDefault());
+
+        const editItem = document.createElement('div');
+        editItem.className = 'context-menu-item';
+        editItem.innerHTML = T('editNodeTitle');
+        editItem.onclick = (e) => {
+            e.stopPropagation();
+            removeContextMenu();
+
+            const match = fullLine.match(/^(\s*(?:#+\s*|-\s*|\d+\.\s*))/);
+            const prefix = match ? match[0] : '';
+            const originalText = nodeData.data.content;
+
+            openEditModal(originalText, lineIndex, prefix);
+        };
+        menu.appendChild(editItem);
+
+        const deleteItem = document.createElement('div');
+        deleteItem.className = 'context-menu-item';
+        deleteItem.innerHTML = T('deleteNodeBtn');
+        deleteItem.onclick = (e) => {
+            e.stopPropagation();
+            deleteNode(nodeData);
+            removeContextMenu();
+        };
+        menu.appendChild(deleteItem);
+
+        document.body.appendChild(menu);
+
+        const menuWidth = menu.offsetWidth;
+        const menuHeight = menu.offsetHeight;
+        const {innerWidth, innerHeight} = window;
+
+        let left = pageX;
+        let top = pageY;
+
+        if (pageX + menuWidth > innerWidth) {
+            left = innerWidth - menuWidth - 5;
+        }
+        if (pageY + menuHeight > innerHeight) {
+            top = innerHeight - menuHeight - 5;
+        }
+
+        menu.style.top = `${top}px`;
+        menu.style.left = `${left}px`;
+    }
+
+    function setupNodeInteraction() {
+        if (!mm || !d3) return;
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.context-menu')) {
+                removeContextMenu();
+            }
+        });
+
+        mm.svg.on('contextmenu.editor', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            removeContextMenu();
+
+            const node = event.target.closest('.markmap-node');
+            if (!node) return;
+
+            const d = d3.select(node).datum();
+            if (!d?.data?.payload?.lines) return;
+
+            createContextMenu(event, d);
+        });
     }
 
 
     document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            if (!editNodeModal.classList.contains('hidden')) {
+                e.preventDefault();
+                closeEditModal();
+            } else {
+                removeContextMenu();
+            }
+            return;
+        }
+
+        if (!editNodeModal.classList.contains('hidden')) {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                saveNodeEdit();
+            }
+            return;
+        }
+
         if (e.key === 'F11') {
             e.preventDefault();
             toggleFullScreen();
