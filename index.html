@@ -472,6 +472,23 @@
             gap: 0.5rem;
         }
 
+        .cancel-btn {
+            margin-top: 0.75rem;
+            padding: 0.5rem 1.5rem;
+            border: 1px solid #667eea;
+            border-radius: 6px;
+            background: white;
+            color: #4c63d2;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+
+        .cancel-btn:hover {
+            background: #eef1ff;
+            box-shadow: 0 3px 8px rgba(102, 126, 234, 0.2);
+        }
+
         .spinner-container {
             position: relative;
             width: 60px;
@@ -920,6 +937,7 @@
                 </div>
                 <div data-t="thinkingMessage"></div>
                 <div class="status-message" id="status-message"></div>
+                <button id="cancel-generate-btn" class="cancel-btn hidden" data-t="cancelBtn"></button>
             </div>
         </div>
     </div>
@@ -1014,6 +1032,7 @@
     let currentViewMode = 'input';
     let AI_PROMPT_TEMPLATE = '';
     let editingNodeContext = null;
+    let generationAbortController = null;
 
     let currentLanguage = 'zh';
 
@@ -1125,6 +1144,11 @@
             'js_alert_query_success': (n) => `成功获取到 ${n} 个可用模型！`,
             'js_alert_no_mindmap': '找不到思维导图，无法导出。',
             'js_alert_export_error': (type) => `导出${type}图片时发生错误，请稍后重试。`,
+            'js_confirm_clear': '确定要清空输入内容和所有生成结果吗？',
+            'js_confirm_delete_node': '确定要删除该节点及其所有子节点吗？',
+            'js_cancelling': '正在取消...',
+            'js_cancelled': '生成已取消。',
+            'cancelBtn': '✋ 取消生成',
 
             'defaultMarkdown': `# 🤖 AI思维导图生成 - AiMarkmap
 
@@ -1315,6 +1339,11 @@
             'js_alert_query_success': (n) => `Successfully fetched ${n} available models!`,
             'js_alert_no_mindmap': 'Could not find the mind map to export.',
             'js_alert_export_error': (type) => `An error occurred while exporting the ${type} image. Please try again later.`,
+            'js_confirm_clear': 'Clear the input and all generated results?',
+            'js_confirm_delete_node': 'Delete this node and all its children?',
+            'js_cancelling': 'Cancelling...',
+            'js_cancelled': 'Generation cancelled.',
+            'cancelBtn': '✋ Cancel Generation',
 
             'defaultMarkdown': `# 🤖 AI Mind Map Generation - AiMarkmap
 
@@ -1475,6 +1504,8 @@ Please adhere to the following requirements:
 
     function openSettingsModal() {
         settingsModal.classList.remove('hidden');
+        const apiUrlInput = document.getElementById('api-url');
+        if (apiUrlInput) apiUrlInput.focus();
     }
 
     function closeSettingsModal() {
@@ -1503,6 +1534,7 @@ Please adhere to the following requirements:
     function openPromptModal() {
         promptInput.value = AI_PROMPT_TEMPLATE;
         promptModal.classList.remove('hidden');
+        promptInput.focus();
     }
 
     function closePromptModal() {
@@ -1612,6 +1644,19 @@ Please adhere to the following requirements:
                     closePromptModal();
                 }
             });
+            settingsModal.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.isComposing && (e.target.id === 'api-url' || e.target.id === 'api-key')) {
+                    e.preventDefault();
+                    saveAndCloseSettings();
+                }
+            });
+            promptModal.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.isComposing && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault();
+                    saveAndClosePrompt();
+                }
+            });
+            document.getElementById('cancel-generate-btn').addEventListener('click', cancelGeneration);
 
             editNodeModal.addEventListener('click', (e) => {
                 if (e.target === editNodeModal) {
@@ -1878,6 +1923,9 @@ Please adhere to the following requirements:
         try {
             const fetchPromises = [];
             const numVersions = parseInt(versionSlider.value, 10);
+            generationAbortController = typeof AbortController !== 'undefined' ? new AbortController() : null;
+            const cancelBtn = document.getElementById('cancel-generate-btn');
+            if (cancelBtn) cancelBtn.classList.remove('hidden');
             for (let i = 0; i < numVersions; i++) {
                 fetchPromises.push(
                     fetch(apiUrl, {
@@ -1888,13 +1936,15 @@ Please adhere to the following requirements:
                             messages: [{role: 'user', content: AI_PROMPT_TEMPLATE.replace('{{CONTENT}}', content)}],
                             max_tokens: 2000,
                             temperature: 0.6 + i * 0.15
-                        })
+                        }),
+                        ...(generationAbortController ? {signal: generationAbortController.signal} : {})
                     })
                 );
             }
 
             const responses = await Promise.allSettled(fetchPromises);
             let successfulResults = 0;
+            const wasCancelled = generationAbortController ? generationAbortController.signal.aborted : false;
 
             for (const result of responses) {
                 if (result.status === 'fulfilled') {
@@ -1914,7 +1964,7 @@ Please adhere to the following requirements:
                         }
                     }
                 } else {
-                    console.error('一个AI请求失败:', result.reason);
+                    if (!wasCancelled) console.error('一个AI请求失败:', result.reason);
                 }
             }
 
@@ -1927,22 +1977,44 @@ Please adhere to the following requirements:
                 setTimeout(() => {
                     loadingOverlay.style.display = 'none';
                 }, 1000);
+            } else if (wasCancelled) {
+                statusMessage.textContent = T('js_cancelled');
+                setTimeout(() => {
+                    loadingOverlay.style.display = 'none';
+                }, 600);
+                updateMarkmap(currentMarkdown);
             } else {
                 throw new Error(T('js_alert_all_failed'));
             }
 
         } catch (error) {
-            console.error('AI生成失败:', error);
-            alert(T('js_alert_gen_failed', error.message));
-            loadingOverlay.style.display = 'none';
-            updateMarkmap(currentMarkdown);
+            if (generationAbortController && generationAbortController.signal.aborted) {
+                loadingOverlay.style.display = 'none';
+                updateMarkmap(currentMarkdown);
+            } else {
+                console.error('AI生成失败:', error);
+                alert(T('js_alert_gen_failed', error.message));
+                loadingOverlay.style.display = 'none';
+                updateMarkmap(currentMarkdown);
+            }
         } finally {
             stopTimer();
+            generationAbortController = null;
+            const cancelBtn = document.getElementById('cancel-generate-btn');
+            if (cancelBtn) cancelBtn.classList.add('hidden');
             generateBtn.disabled = false;
             pasteGenerateBtn.disabled = false;
             generateBtn.innerHTML = T('generateBtn');
             pasteGenerateBtn.innerHTML = T('pasteGenerateBtn');
             updateAllButtonStates();
+        }
+    }
+
+    function cancelGeneration() {
+        if (generationAbortController) {
+            generationAbortController.abort();
+            const statusMessage = document.getElementById('status-message');
+            if (statusMessage) statusMessage.textContent = T('js_cancelling');
         }
     }
 
@@ -1997,6 +2069,7 @@ Please adhere to the following requirements:
     }
 
     function clearContent() {
+        if ((topicInput.value.trim() || aiResults.length > 0) && !confirm(T('js_confirm_clear'))) return;
         topicInput.value = '';
         clearAiResults();
         currentMarkdown = T('defaultMarkdown');
@@ -2387,6 +2460,7 @@ Please adhere to the following requirements:
 
     function deleteNode(nodeToDelete) {
         if (!nodeToDelete) return;
+        if (!confirm(T('js_confirm_delete_node'))) return;
 
         const linesToDelete = new Set();
         collectNodeLines(nodeToDelete, linesToDelete);
@@ -2515,6 +2589,15 @@ Please adhere to the following requirements:
             if (!editNodeModal.classList.contains('hidden')) {
                 e.preventDefault();
                 closeEditModal();
+            } else if (!infoModal.classList.contains('hidden')) {
+                e.preventDefault();
+                closeInfoModal();
+            } else if (!promptModal.classList.contains('hidden')) {
+                e.preventDefault();
+                closePromptModal();
+            } else if (!settingsModal.classList.contains('hidden')) {
+                e.preventDefault();
+                closeSettingsModal();
             } else {
                 removeContextMenu();
             }

@@ -56,6 +56,21 @@
     .result-tab-btn.active { background: rgba(255, 255, 255, 0.4); font-weight: 700; border-color: white; }
     .mindmap-container { width: 100%; height: calc(100% - 52px); background: white; position: relative; flex: 1; } #mindmap { width: 100%; height: 100%; }
     .loading-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255, 255, 255, 0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; color: #666; gap: 0.5rem; }
+    .cancel-btn {
+        margin-top: 0.75rem;
+        padding: 0.5rem 1.5rem;
+        border: 1px solid #667eea;
+        border-radius: 6px;
+        background: white;
+        color: #4c63d2;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: background 0.2s, box-shadow 0.2s;
+    }
+    .cancel-btn:hover {
+        background: #eef1ff;
+        box-shadow: 0 3px 8px rgba(102, 126, 234, 0.2);
+    }
     .spinner-container { position: relative; width: 60px; height: 60px; margin-bottom: 0.5rem; }
     .loading-spinner { width: 60px; height: 60px; border: 5px solid #f3f3f3; border-top: 5px solid #4c63d2; border-radius: 50%; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -267,6 +282,7 @@
                 </div>
                 <div data-t="thinkingMessage"></div>
                 <div class="status-message" id="status-message"></div>
+                <button id="cancel-generate-btn" class="cancel-btn hidden" data-t="cancelBtn"></button>
             </div>
         </div>
     </div>
@@ -324,6 +340,7 @@ let timerInterval = null;
 let startTime = 0;
 let currentViewMode = 'input';
 let AI_PROMPT_TEMPLATE = '';
+let generationAbortController = null;
 
 let currentLanguage = 'zh';
 
@@ -381,6 +398,10 @@ const translations = {
         'js_alert_query_success': (n) => `成功获取到 ${n} 个可用模型！`,
         'js_alert_no_mindmap': '找不到思维导图，无法导出。',
         'js_alert_export_error': (type) => `导出${type}图片时发生错误，请稍后重试。`,
+        'js_confirm_clear': '确定要清空输入内容和所有生成结果吗？',
+        'js_cancelling': '正在取消...',
+        'js_cancelled': '生成已取消。',
+        'cancelBtn': '✋ 取消生成',
         
         'defaultMarkdown': `# 🤖 AI思维导图生成 - AiMarkmap
 
@@ -517,6 +538,10 @@ const translations = {
         'js_alert_query_success': (n) => `Successfully fetched ${n} available models!`,
         'js_alert_no_mindmap': 'Could not find the mind map to export.',
         'js_alert_export_error': (type) => `An error occurred while exporting the ${type} image. Please try again later.`,
+        'js_confirm_clear': 'Clear the input and all generated results?',
+        'js_cancelling': 'Cancelling...',
+        'js_cancelled': 'Generation cancelled.',
+        'cancelBtn': '✋ Cancel Generation',
         
         'defaultMarkdown': `# 🤖 AI Mind Map Generation - AiMarkmap
 
@@ -662,7 +687,11 @@ function getNodeColor(node) {
   return colorPalette[index];
 }
 
-function openSettingsModal() { settingsModal.classList.remove('hidden'); }
+function openSettingsModal() {
+    settingsModal.classList.remove('hidden');
+    const apiUrlInput = document.getElementById('api-url');
+    if (apiUrlInput) apiUrlInput.focus();
+}
 function closeSettingsModal() { settingsModal.classList.add('hidden'); }
 function saveAndCloseSettings() {
     autoCompleteApiUrl();
@@ -676,6 +705,7 @@ function saveAndCloseSettings() {
 function openPromptModal() {
     promptInput.value = AI_PROMPT_TEMPLATE;
     promptModal.classList.remove('hidden');
+    promptInput.focus();
 }
 
 function closePromptModal() {
@@ -764,6 +794,19 @@ async function init() {
         promptModal.addEventListener('click', (e) => {
             if (e.target === promptModal) { closePromptModal(); }
         });
+        settingsModal.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.isComposing && (e.target.id === 'api-url' || e.target.id === 'api-key')) {
+                e.preventDefault();
+                saveAndCloseSettings();
+            }
+        });
+        promptModal.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.isComposing && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                saveAndClosePrompt();
+            }
+        });
+        document.getElementById('cancel-generate-btn').addEventListener('click', cancelGeneration);
 
         versionSlider.addEventListener('input', () => {
             updateVersionCountDisplay();
@@ -997,6 +1040,9 @@ async function generateWithAI() {
     try {
         const fetchPromises = [];
         const numVersions = parseInt(versionSlider.value, 10);
+        generationAbortController = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        const cancelBtn = document.getElementById('cancel-generate-btn');
+        if (cancelBtn) cancelBtn.classList.remove('hidden');
         for (let i = 0; i < numVersions; i++) {
             fetchPromises.push(
                 fetch(apiUrl, {
@@ -1007,13 +1053,15 @@ async function generateWithAI() {
                         messages: [{ role: 'user', content: AI_PROMPT_TEMPLATE.replace('{{CONTENT}}', content) }],
                         max_tokens: 2000,
                         temperature: 0.6 + i * 0.15
-                    })
+                    }),
+                    ...(generationAbortController ? { signal: generationAbortController.signal } : {})
                 })
             );
         }
 
         const responses = await Promise.allSettled(fetchPromises);
         let successfulResults = 0;
+        const wasCancelled = generationAbortController ? generationAbortController.signal.aborted : false;
 
         for (const result of responses) {
             if (result.status === 'fulfilled') {
@@ -1030,7 +1078,7 @@ async function generateWithAI() {
                         }
                     } catch (e) { console.error('解析AI响应失败:', e); }
                 }
-            } else {
+            } else if (!wasCancelled) {
                 console.error('一个AI请求失败:', result.reason);
             }
         }
@@ -1042,22 +1090,42 @@ async function generateWithAI() {
             switchToResult(0);
             switchView('markdown');
             setTimeout(() => { loadingOverlay.style.display = 'none'; }, 1000);
+        } else if (wasCancelled) {
+            statusMessage.textContent = T('js_cancelled');
+            setTimeout(() => { loadingOverlay.style.display = 'none'; }, 600);
+            updateMarkmap(currentMarkdown);
         } else {
             throw new Error(T('js_alert_all_failed'));
         }
 
     } catch (error) {
-        console.error('AI生成失败:', error);
-        alert(T('js_alert_gen_failed', error.message));
-        loadingOverlay.style.display = 'none';
-        updateMarkmap(currentMarkdown);
+        if (generationAbortController && generationAbortController.signal.aborted) {
+            loadingOverlay.style.display = 'none';
+            updateMarkmap(currentMarkdown);
+        } else {
+            console.error('AI生成失败:', error);
+            alert(T('js_alert_gen_failed', error.message));
+            loadingOverlay.style.display = 'none';
+            updateMarkmap(currentMarkdown);
+        }
     } finally {
         stopTimer();
+        generationAbortController = null;
+        const cancelBtn = document.getElementById('cancel-generate-btn');
+        if (cancelBtn) cancelBtn.classList.add('hidden');
         generateBtn.disabled = false;
         pasteGenerateBtn.disabled = false;
         generateBtn.innerHTML = T('generateBtn');
         pasteGenerateBtn.innerHTML = T('pasteGenerateBtn');
         updateAllButtonStates();
+    }
+}
+
+function cancelGeneration() {
+    if (generationAbortController) {
+        generationAbortController.abort();
+        const statusMessage = document.getElementById('status-message');
+        if (statusMessage) statusMessage.textContent = T('js_cancelling');
     }
 }
 
@@ -1112,6 +1180,7 @@ function switchView(viewName) {
 }
 
 function clearContent() {
+    if ((topicInput.value.trim() || aiResults.length > 0) && !confirm(T('js_confirm_clear'))) return;
     topicInput.value = '';
     clearAiResults();
     currentMarkdown = T('defaultMarkdown');
@@ -1404,6 +1473,17 @@ async function exportPNG() {
 
 
 document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        if (!promptModal.classList.contains('hidden')) {
+            e.preventDefault();
+            closePromptModal();
+        } else if (!settingsModal.classList.contains('hidden')) {
+            e.preventDefault();
+            closeSettingsModal();
+        }
+        return;
+    }
+
     if (e.key === 'F11') {
         e.preventDefault();
         toggleFullScreen();
